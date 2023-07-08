@@ -29,11 +29,76 @@ function createSetRow() {
     return setRowHtml;
 }
 
-function findAlts(sets) {
-    console.log(sets);
+function getCombs(){
+    const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const combinations = [];
 
-    return [1,2,3];
+    for (let i = 0; i < digits.length; i++) {
+        for (let j = 0; j < digits.length; j++) {
+        for (let k = 0; k < digits.length; k++) {
+            if (i !== j && i !== k && j !== k) {
+            const combination = [digits[i], digits[j], digits[k]];
+            combinations.push(combination);
+            }
+        }
+        }
+    }
+    return combinations
 }
+
+function getScore(comb, res) {
+    const balls = comb.filter(element => res.includes(element));
+    var strikes = 0;
+    for (i=0; i<comb.length; i++){
+        if (comb[i]===res[i]){
+            strikes++;
+        }
+    }
+    return `${strikes}S${balls.length-strikes}B`
+}
+
+function findAlts(sets) {
+    var combs = getCombs();
+    for (var set_ix = 0; set_ix < sets.length; set_ix++){
+        var values = sets[set_ix].slice(0,3);
+        var result = sets[set_ix][3]
+        var new_combs = []
+        for (var comb_ix = 0; comb_ix < combs.length; comb_ix++){
+            
+            var score = getScore(combs[comb_ix], values);
+            
+            if (score === result){
+                new_combs.push(combs[comb_ix])
+            }
+        }
+        combs = new_combs;
+    }
+    return combs;
+}
+
+function getRecomm(alts, sets){
+
+    let counts = {};
+    for (let i = 0; i < 10; i++) {
+    counts[i] = 0;
+    }
+
+    for (var s = 0; s < sets.length; s++){
+        for (var v = 0; v < sets[s].length; v++) {
+            var value = sets[s][v];
+            counts[value]++;
+        }
+    }
+
+    var combs_dict = {};
+    for (var ix = 0; ix < alts.length; ix++) {
+        let comb = alts[ix];
+        combs_dict[ix] = comb.reduce((acc, d) => acc + counts[d], 0);
+    }
+    combs_dict = Object.entries(combs_dict).sort((a, b) => a[1] - b[1]);
+    return Array.from(alts[combs_dict[0][0]]);
+}
+
 
 $(document).ready(function() {
     var setsContainer = $("#setsContainer");
@@ -42,20 +107,26 @@ $(document).ready(function() {
 
     calculateButton.on("click", function() {
         var sets = getSets();
-        console.log(sets);
+        let tries = sets.map(game_set => game_set.slice(0, 3));
 
-        var alts = $(findAlts(sets))
+        var alts = $(findAlts(sets));
+
+        var recomm = getRecomm(alts, tries);
 
         if (alts.length > 0) {
-            console.log(alts);
             var resultHtml = "";
-            for (var i = 0; i < sets.length; i++) {
-                var set = sets[i];
-                resultHtml += "<div class='result'>";
-                resultHtml += "<h3>Set " + (i + 1) + "</h3>";
-                resultHtml += "<p>Numbers: " + set.join(", ") + "</p>";
-                resultHtml += "</div>";
+            resultHtml += "<div class='result-recomm'>";
+            resultHtml += "<div> Recommended: </div>";
+            resultHtml += "<div class='result-item'>" + recomm.join(", ") + "</div>";
+            resultHtml += "</div>";
+
+            resultHtml += "<div class='result'>";
+            for (var i = 0; i < alts.length; i++) {
+                var alt = alts[i];
+                resultHtml += "<div class='result-item'>" + alt.join(", ") + "</div>";
+                
             }
+            resultHtml += "</div>";
             resultContainer.html(resultHtml);
         } else {
             resultContainer.html("");
